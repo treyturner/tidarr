@@ -206,10 +206,10 @@ Tidarr ignores non-audio categories before resolving quality. `3040` is Newznab'
 
 **Example search result:**
 ```
-Artist - Album (2024) [FLAC 24bit] (12 tracks)  ← Highest quality
-Artist - Album (2024) [FLAC] (12 tracks)
-Artist - Album (2024) [AAC-320] (12 tracks)
-Artist - Album (2024) [MP3-96] (12 tracks)       ← Lowest quality
+Artist - Album (2024) FLAC 24bit [WEB]-Tidarr (12 tracks)  ← Highest quality
+Artist - Album (2024) FLAC [WEB]-Tidarr (12 tracks)
+Artist - Album (2024) AAC-320 [WEB]-Tidarr (12 tracks)
+Artist - Album (2024) MP3-96 [WEB]-Tidarr (12 tracks)       ← Lowest quality
 ```
 
 ## How Search Works
@@ -219,15 +219,15 @@ Artist - Album (2024) [MP3-96] (12 tracks)       ← Lowest quality
    - Volume shorthand normalization, such as `V.2` → `Vol. 2`
    - Comma-suffix removal from the album title, such as `Album Name, Vol. 2` → `Album Name`
 3. Tidarr merges fallback results by Tidal album ID, preserving first-seen order. Each fallback request uses the same configured per-request limit, so merged results may exceed that limit.
-4. Tidarr returns all matched albums, each with the quality variants inferred from Lidarr's category filter
-5. Lidarr's matching algorithm selects the best result based on your preferences
-6. Download triggered with selected quality → Tiddl downloads with correct CLI quality flag
+4. Tidarr returns all matched albums, each with the quality variants inferred from Lidarr's category filter.
+5. Lidarr's matching algorithm selects the best result based on your preferences.
+6. Download triggered with selected quality → Tiddl downloads with correct CLI quality flag.
 
 Fallbacks are only used for Lidarr indexer searches. They stop once an exact album-and-artist match is found, and they do not affect Tidarr's normal Tidal searches.
 
 **Explicit Content:**
 - Albums with explicit content show `[EXPLICIT]` tag in title
-- Example: `Artist - Album (2024) [EXPLICIT] [FLAC] (12 tracks)`
+- Example: `Artist - Album (2024) [EXPLICIT] FLAC [WEB]-Tidarr (12 tracks)`
 
 ## Advanced Topics
 

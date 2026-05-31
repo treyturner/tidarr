@@ -125,8 +125,43 @@ test("generated Newznab download URLs use Tiddl quality values", () => {
   const hiresItem = generateNewznabItem(album, req, "hires_lossless");
   assert.match(hiresItem, /\/api\/lidarr\/download\/123\/max/);
   assert.match(hiresItem, /FLAC 24bit/);
+  assert.match(
+    hiresItem,
+    /<title>Example Artist - Example Album \(2024\) FLAC 24bit \[WEB\]-Tidarr \(1 tracks\)<\/title>/,
+  );
 
   const highItem = generateNewznabItem(album, req, "high");
   assert.match(highItem, /\/api\/lidarr\/download\/123\/normal/);
   assert.match(highItem, /AAC-320/);
+});
+
+test("generated Newznab titles use matched Tidal metadata", () => {
+  const req = {
+    protocol: "http",
+    get: () => "localhost:8484",
+    query: {},
+    headers: {},
+  };
+  const item = generateNewznabItem(
+    {
+      id: "456",
+      title: "Label Selects, Vol. 2",
+      artist: { name: "Steve Singsalot" },
+      releaseDate: "2025-01-01",
+      numberOfTracks: 10,
+      audioQuality: "LOSSLESS",
+      type: "album",
+    },
+    req,
+    "lossless",
+  );
+
+  assert.match(
+    item,
+    /<title>Steve Singsalot - Label Selects, Vol\. 2 \(2025\) FLAC \[WEB\]-Tidarr \(10 tracks\)<\/title>/,
+  );
+  assert.match(
+    item,
+    /<newznab:attr name="album" value="Label Selects, Vol\. 2"\/>/,
+  );
 });
