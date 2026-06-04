@@ -70,6 +70,10 @@ type LidarrQualityResolveOptions = {
   disableMaxResults?: boolean;
 };
 
+type NewznabItemOptions = {
+  includeExplicitTags?: boolean;
+};
+
 const TIDDL_QUALITIES: readonly QualityType[] = [
   "max",
   "high",
@@ -245,6 +249,10 @@ export function areLidarrMaxResultsDisabled(value?: string): boolean {
   return value?.trim().toLowerCase() === "true";
 }
 
+export function areLidarrExplicitTagsEnabled(value?: string): boolean {
+  return value?.trim().toLowerCase() === "true";
+}
+
 export function mapQualityToTiddl(quality: string): QualityType {
   if (isTiddlQuality(quality)) return quality;
 
@@ -353,6 +361,7 @@ export function generateNewznabItem(
   album: TidalAlbum,
   req: Request,
   quality?: string,
+  options: NewznabItemOptions = {},
 ): string {
   if (!album?.id) return "";
 
@@ -379,7 +388,8 @@ export function generateNewznabItem(
 
   const formattedArtist = formatForMusicBrainz(albumArtist);
   const formattedTitle = formatForMusicBrainz(album.title);
-  const explicitTag = album.explicit ? "[EXPLICIT]" : "";
+  const explicitTag =
+    options.includeExplicitTags && album.explicit ? "[EXPLICIT]" : "";
   const tracksInfo = album.numberOfTracks
     ? ` (${album.numberOfTracks} tracks)`
     : "";

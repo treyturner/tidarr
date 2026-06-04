@@ -168,6 +168,7 @@ export interface SettingsResponse {
     ENABLE_HISTORY?: string;
     LIDARR_TIDAL_SEARCH_LIMIT?: string;
     LIDARR_DISABLE_MAX_RESULTS?: string;
+    LIDARR_EXPLICIT_TAGS?: string;
   };
   noToken: boolean;
   tiddl_config?: TiddlConfig;

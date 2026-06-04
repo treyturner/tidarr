@@ -2,9 +2,10 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const {
+  areLidarrExplicitTagsEnabled,
+  areLidarrMaxResultsDisabled,
   filterLidarrIndexerQualitiesForAlbum,
   generateNewznabItem,
-  areLidarrMaxResultsDisabled,
   mapQualityToTiddl,
   resolveLidarrIndexerQualities,
   summarizeAlbumTrackQualityHints,
@@ -121,6 +122,14 @@ test("parses the LIDARR_DISABLE_MAX_RESULTS setting", () => {
   assert.equal(areLidarrMaxResultsDisabled(undefined), false);
 });
 
+test("parses the LIDARR_EXPLICIT_TAGS setting", () => {
+  assert.equal(areLidarrExplicitTagsEnabled("true"), true);
+  assert.equal(areLidarrExplicitTagsEnabled(" TRUE "), true);
+  assert.equal(areLidarrExplicitTagsEnabled("false"), false);
+  assert.equal(areLidarrExplicitTagsEnabled(""), false);
+  assert.equal(areLidarrExplicitTagsEnabled(undefined), false);
+});
+
 test("keeps direct download Tiddl qualities unchanged", () => {
   assert.equal(mapQualityToTiddl("max"), "max");
   assert.equal(mapQualityToTiddl("high"), "high");
@@ -235,6 +244,55 @@ test("generated Newznab download URLs use Tiddl quality values", () => {
   const highItem = generateNewznabItem(album, req, "high");
   assert.match(highItem, /\/api\/lidarr\/download\/123\/normal/);
   assert.match(highItem, /AAC-320/);
+});
+
+test("generated Newznab items omit explicit tags by default", () => {
+  const req = {
+    protocol: "http",
+    get: () => "localhost:8484",
+    query: {},
+    headers: {},
+  };
+  const album = {
+    id: "123",
+    title: "Example Album",
+    artist: { name: "Example Artist" },
+    releaseDate: "2024-01-01",
+    numberOfTracks: 1,
+    audioQuality: "LOSSLESS",
+    type: "album",
+    explicit: true,
+  };
+
+  const item = generateNewznabItem(album, req, "lossless");
+
+  assert.doesNotMatch(item, /\[EXPLICIT\]/);
+});
+
+test("generated Newznab items include explicit tags when enabled", () => {
+  const req = {
+    protocol: "http",
+    get: () => "localhost:8484",
+    query: {},
+    headers: {},
+  };
+  const album = {
+    id: "123",
+    title: "Example Album",
+    artist: { name: "Example Artist" },
+    releaseDate: "2024-01-01",
+    numberOfTracks: 1,
+    audioQuality: "LOSSLESS",
+    type: "album",
+    explicit: true,
+  };
+
+  const item = generateNewznabItem(album, req, "lossless", {
+    includeExplicitTags: true,
+  });
+
+  assert.match(item, /<title>.*\[EXPLICIT\].*<\/title>/);
+  assert.match(item, /<description>.*\[EXPLICIT\].*<\/description>/);
 });
 
 test("generated Newznab items without quality hints fall back to AAC-320", () => {

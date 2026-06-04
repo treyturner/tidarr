@@ -523,6 +523,8 @@ Lidarr searches request 20 albums per outbound Tidal search by default. Set `LID
 
 Lidarr search results are filtered with Tidal quality hints when available. Tidarr only advertises `[FLAC 24bit]` when Tidal reports hi-res hints for the album and every track in the album list; final downloads still depend on the stream Tiddl can retrieve from Tidal. Set `LIDARR_DISABLE_MAX_RESULTS=true` to suppress `[FLAC 24bit]` results while still returning regular `[FLAC]` results from Lidarr's lossless category, which is useful especially while [`oskvr37/tiddl` #333](https://github.com/oskvr37/tiddl/issues/333) is open.
 
+Set `LIDARR_EXPLICIT_TAGS=true` to include `[EXPLICIT]` in explicit album results returned to Lidarr. The tag is omitted by default, and any value other than trimmed, case-insensitive `true` is treated as disabled.
+
 > [!NOTE]
 > **Quick Setup**
 >

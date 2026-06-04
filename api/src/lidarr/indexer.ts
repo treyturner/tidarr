@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 
 import {
+  areLidarrExplicitTagsEnabled,
   areLidarrMaxResultsDisabled,
   filterLidarrIndexerQualitiesForAlbum,
   generateNewznabItem,
@@ -187,6 +188,9 @@ export async function handleSearchRequest(
       process.env.LIDARR_DISABLE_MAX_RESULTS,
     ),
   });
+  const includeExplicitTags = areLidarrExplicitTagsEnabled(
+    process.env.LIDARR_EXPLICIT_TAGS,
+  );
   const albumQualityResults = await Promise.all(
     results.map(async (album) => {
       const albumQualities = filterLidarrIndexerQualitiesForAlbum(
@@ -212,7 +216,9 @@ export async function handleSearchRequest(
   const items = albumQualityResults.flatMap(({ album, trackQualitySummary }) =>
     filterLidarrIndexerQualitiesForAlbum(album, qualities, {
       trackQualitySummary,
-    }).map((quality) => generateNewznabItem(album, req, quality)),
+    }).map((quality) =>
+      generateNewznabItem(album, req, quality, { includeExplicitTags }),
+    ),
   );
 
   const totalResults = items.length;
