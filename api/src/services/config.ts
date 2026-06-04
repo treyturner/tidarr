@@ -55,6 +55,7 @@ export async function configureServer() {
       DOWNLOAD_BATCH_DELAY: process.env.DOWNLOAD_BATCH_DELAY || "",
       LIDARR_TIDAL_SEARCH_LIMIT: process.env.LIDARR_TIDAL_SEARCH_LIMIT || "",
       LIDARR_DISABLE_MAX_RESULTS: process.env.LIDARR_DISABLE_MAX_RESULTS || "",
+      LIDARR_EXPLICIT_TAGS: process.env.LIDARR_EXPLICIT_TAGS || "",
     },
   };
 }

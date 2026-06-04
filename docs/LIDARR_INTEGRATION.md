@@ -230,7 +230,8 @@ Artist - Album (2024) [MP3-96] (12 tracks)       ← Lowest quality
 Fallbacks are only used for Lidarr indexer searches. They stop once an exact album-and-artist match is found, and they do not affect Tidarr's normal Tidal searches.
 
 **Explicit Content:**
-- Albums with explicit content show `[EXPLICIT]` tag in title
+- Albums with explicit content show `[EXPLICIT]` in Lidarr result titles and descriptions only if `LIDARR_EXPLICIT_TAGS=true`
+- The tag is omitted by default, and any value other than trimmed, case-insensitive `true` is treated as disabled
 - Example: `Artist - Album (2024) [EXPLICIT] [FLAC] (12 tracks)`
 
 ## Advanced Topics

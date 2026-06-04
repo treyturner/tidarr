@@ -261,6 +261,37 @@ test("LIDARR_DISABLE_MAX_RESULTS suppresses FLAC 24bit search results", async (t
   assert.doesNotMatch(res.body, /\/api\/lidarr\/download\/1\/max/);
 });
 
+test("LIDARR_EXPLICIT_TAGS includes explicit tags in search results", async (t) => {
+  const originalExplicitTags = process.env.LIDARR_EXPLICIT_TAGS;
+  process.env.LIDARR_EXPLICIT_TAGS = "true";
+  t.after(() => {
+    if (originalExplicitTags === undefined) {
+      delete process.env.LIDARR_EXPLICIT_TAGS;
+    } else {
+      process.env.LIDARR_EXPLICIT_TAGS = originalExplicitTags;
+    }
+  });
+
+  t.mock.method(tidalSearchAlbums, "searchTidalForLidarr", async () => [
+    tidalAlbum("1", "Explicit Album", "Daft Punk", {
+      explicit: true,
+    }),
+  ]);
+
+  const res = createResponse();
+
+  await handleSearchRequest(createRequest({ cat: "3010" }), res, {
+    searchType: "music",
+    artist: "Daft Punk",
+    album: "Explicit Album",
+  });
+
+  assert.match(res.body, /<newznab:response offset="0" total="1"\/>/);
+  assert.equal(countItems(res.body), 1);
+  assert.equal(countOccurrences(res.body, "[EXPLICIT]"), 2);
+  assert.match(res.body, /Explicit Album.*\[EXPLICIT\].*AAC-320/);
+});
+
 test("generic search remains available as a compatibility path", async (t) => {
   const calls = [];
 
