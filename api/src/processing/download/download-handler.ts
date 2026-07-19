@@ -3,6 +3,7 @@ import { Express } from "express";
 import { tidalDL } from "../../services/tiddl";
 import { ProcessingItemType } from "../../types";
 import { getArtistAlbums } from "../utils/artist-discography";
+import { getFavoriteAlbums } from "../utils/favorite-albums-to-queue";
 import { logs } from "../utils/logs";
 import {
   addTracksToPlaylist,
@@ -55,6 +56,27 @@ export async function handleDownload(
     await getArtistAlbums(item);
     await app.locals.processingStack.actions.removeItem(item.id);
     // removeItem triggers processQueue internally — no need to call onComplete
+    return;
+  }
+
+  // Handle favorite_albums type: expand into individual album queue items
+  if (item.type === "favorite_albums") {
+    try {
+      await getFavoriteAlbums(item);
+      await app.locals.processingStack.actions.removeItem(item.id);
+      // removeItem triggers processQueue internally — no need to call onComplete
+    } catch (error) {
+      logs(
+        item.id,
+        `❌ [FAV] Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      item.status = "error";
+      item.error = true;
+      item.loading = false;
+      item.networkError = true;
+      app.locals.processingStack.actions.updateItem(item);
+      onComplete();
+    }
     return;
   }
 
