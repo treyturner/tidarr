@@ -1,10 +1,7 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
     "paths": {
-      "src/*": [
-        "./src/*"
-      ],
+      "src/*": ["./src/*"]
     },
     "target": "ES2021",
     "useDefineForClassFields": true,
