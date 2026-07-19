@@ -39,6 +39,7 @@ function notifySSEConnections(
 
   const payload = JSON.stringify({
     items: sanitizeProcessingData(processingStack.data),
+    history: app.locals.history,
     isPaused,
     batchCount,
     batchResumeAt,

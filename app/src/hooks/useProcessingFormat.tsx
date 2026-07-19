@@ -36,6 +36,7 @@ export function useProcessingFormat() {
         status: "queue_download",
         loading: true,
         error: false,
+        source: "tidarr",
         url: extractUrl(item),
       };
     },

@@ -32,6 +32,7 @@ type ApiFetcherContextType = {
       setIsPaused: (isPaused: boolean) => void,
       setBatchCount: (count: number) => void,
       setBatchResumeAt: (resumeAt: number | null) => void,
+      setHistory: (history: string[]) => void,
     ) => {
       eventSource: EventSourcePlus;
       controller: EventSourceController;
@@ -195,6 +196,7 @@ export function APIFetcherProvider({ children }: { children: ReactNode }) {
     setIsPaused: (isPaused: boolean) => void,
     setBatchCount: (count: number) => void,
     setBatchResumeAt: (resumeAt: number | null) => void,
+    setHistory: (history: string[]) => void,
   ): {
     eventSource: EventSourcePlus;
     controller: EventSourceController;
@@ -202,11 +204,13 @@ export function APIFetcherProvider({ children }: { children: ReactNode }) {
     return streamExpressJS(`${apiUrl}/stream-processing`, (message) => {
       const payload = JSON.parse(message.data) as {
         items: ProcessingItemType[];
+        history: string[];
         isPaused: boolean;
         batchCount: number;
         batchResumeAt: number | null;
       };
       setData(payload.items);
+      setHistory(payload.history);
       setIsPaused(payload.isPaused);
       setBatchCount(payload.batchCount);
       setBatchResumeAt(payload.batchResumeAt);

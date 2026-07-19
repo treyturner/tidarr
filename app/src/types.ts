@@ -370,6 +370,8 @@ export type ProcessingItemType = {
   url: string;
   loading: boolean;
   error: boolean;
+  source?: "lidarr" | "tidarr";
+  outputPaths?: string[];
   progress?: {
     current: number;
     total: number;

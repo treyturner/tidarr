@@ -270,14 +270,21 @@ Tidarr implements these SABnzbd-compatible endpoints:
 | `GET /api/sabnzbd/api?mode=queue`                            | Returns current download queue status       | API key via query param |
 | `GET /api/sabnzbd/api?mode=queue&name=delete&value=<nzo_id>` | Removes item from download queue            | API key via query param |
 | `GET /api/sabnzbd/api?mode=history&limit=<n>`                | Returns download history (completed/failed) | API key via query param |
-| `GET /api/sabnzbd/api?mode=history&name=delete&value=<nzo_id>` | Removes item from history                 | API key via query param |
+| `GET /api/sabnzbd/api?mode=history&name=delete&value=<nzo_id>` | Removes item from history                   | API key via query param |
 
 **Authentication:**
 
-- All SABnzbd endpoints require `apikey` as a query parameter
+- SABnzbd endpoints require `apikey` when password or OIDC authentication is configured
+- Public instances may omit `apikey`
 - Example: `/api/sabnzbd/api?mode=version&apikey=your-api-key`
 
-**Note:** These endpoints enable Lidarr to manage downloads through Tidarr as if it were a SABnzbd download client.
+**History metadata:**
+
+- Lidarr jobs use `lidarr_nzo_<id>`; Tidarr UI jobs use `tidarr_nzo_<id>`.
+- History slots include `tidarr_source` and `tidarr_relative_paths` so bridge clients can resolve the correct mounted download root.
+- Deleting a history row also clears the persistent downloaded marker shown in the Tidarr UI. Deleting a queue row does not.
+
+**Note:** These endpoints enable Lidarr and bridge clients to manage downloads through Tidarr as if it were a SABnzbd download client.
 
 ### Release Processing
 

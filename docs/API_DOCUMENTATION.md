@@ -881,7 +881,7 @@ curl "http://localhost:8484/api/sabnzbd/api?mode=addurl&name=https://listen.tida
 ```json
 {
   "status": true,
-  "nzo_ids": ["tidarr-34277251-1234567890"]
+  "nzo_ids": ["lidarr_nzo_34277251"]
 }
 ```
 
@@ -905,7 +905,7 @@ curl "http://localhost:8484/api/sabnzbd/api?mode=queue&apikey=your-api-key"
     "status": "Downloading",
     "slots": [
       {
-        "nzo_id": "tidarr-34277251-1234567890",
+        "nzo_id": "lidarr_nzo_34277251",
         "filename": "Daft Punk - Random Access Memories",
         "status": "Downloading"
       }
@@ -929,14 +929,14 @@ GET /api/sabnzbd/api?mode=queue&name=delete&value={nzo_id}
 
 **Example:**
 ```bash
-curl "http://localhost:8484/api/sabnzbd/api?mode=queue&name=delete&value=tidarr_nzo_34277251&apikey=your-api-key"
+curl "http://localhost:8484/api/sabnzbd/api?mode=queue&name=delete&value=lidarr_nzo_34277251&apikey=your-api-key"
 ```
 
 **Response:**
 ```json
 {
   "status": true,
-  "nzo_ids": ["tidarr_nzo_34277251"]
+  "nzo_ids": ["lidarr_nzo_34277251"]
 }
 ```
 
@@ -959,10 +959,12 @@ curl "http://localhost:8484/api/sabnzbd/api?mode=history&limit=50&apikey=your-ap
   "history": {
     "slots": [
       {
-        "nzo_id": "tidarr-34277251-1234567890",
+        "nzo_id": "lidarr_nzo_34277251",
         "name": "Daft Punk - Random Access Memories",
         "status": "Completed",
-        "storage": "/music/Daft Punk/2013 - Random Access Memories"
+        "storage": "/downloads/34277251",
+        "tidarr_source": "lidarr",
+        "tidarr_relative_paths": ["34277251"]
       }
     ]
   }
@@ -972,6 +974,12 @@ curl "http://localhost:8484/api/sabnzbd/api?mode=history&limit=50&apikey=your-ap
 **Status mapping:**
 - `Completed` - Successfully downloaded
 - `Failed` - Download failed
+
+History includes terminal downloads from both sources. Lidarr-submitted jobs use
+`lidarr_nzo_<id>` and `tidarr_source: "lidarr"`; native UI jobs use
+`tidarr_nzo_<id>` and `tidarr_source: "tidarr"`. The
+`tidarr_relative_paths` array is relative to that source's download root and is
+authoritative when a job produced more than one directory.
 
 ---
 
@@ -983,16 +991,20 @@ GET /api/sabnzbd/api?mode=history&name=delete&value={nzo_id}
 
 **Example:**
 ```bash
-curl "http://localhost:8484/api/sabnzbd/api?mode=history&name=delete&value=tidarr_nzo_34277251&apikey=your-api-key"
+curl "http://localhost:8484/api/sabnzbd/api?mode=history&name=delete&value=lidarr_nzo_34277251&apikey=your-api-key"
 ```
 
 **Response:**
 ```json
 {
   "status": true,
-  "nzo_ids": ["tidarr_nzo_34277251"]
+  "nzo_ids": ["lidarr_nzo_34277251"]
 }
 ```
+
+Deleting a history row also removes the item's persistent Tidarr download
+marker, so it no longer appears completed in the UI. Queue deletion only
+cancels/removes the processing job and does not change persistent history.
 
 ---
 

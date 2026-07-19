@@ -93,6 +93,7 @@ export async function postProcessTidarr(
 
   // Keep trace of folders processed
   const foldersToScan = await getFolderToScan(item.id);
+  item.outputPaths = foldersToScan;
 
   // Move to output folder
   await moveAndClean(item.id);

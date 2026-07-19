@@ -135,6 +135,7 @@ export const process_sync_list = async (app: Express) => {
       status: "queue_download",
       loading: true,
       error: false,
+      source: "tidarr",
       url: element.url,
     };
 

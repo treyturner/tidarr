@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 
 import { ProcessingItemType } from "../../types";
 
+export type TidarrDownloadSource = "lidarr" | "tidarr";
+
 /**
  * Extract album ID from NZB content
  * NZB format: <meta type="title">Tidarr Album {albumId}|{quality}</meta>
@@ -63,12 +65,29 @@ export function parseMultipartNzb(
 const SABNZBD_VERSION = "3.0.0";
 
 // Helper functions
-export function createNzoId(itemId: string): string {
-  return `tidarr_nzo_${itemId}`;
+export function getTidarrDownloadSource(
+  item: Pick<ProcessingItemType, "source">,
+): TidarrDownloadSource {
+  return item.source === "lidarr" ? "lidarr" : "tidarr";
 }
 
-export function extractItemIdFromNzoId(nzoId: string): string {
-  return nzoId.replace("tidarr_nzo_", "");
+export function createNzoId(
+  itemId: string,
+  source: TidarrDownloadSource,
+): string {
+  return `${source}_nzo_${itemId}`;
+}
+
+export function extractItemIdFromNzoId(
+  nzoId: string,
+): { itemId: string; source: TidarrDownloadSource } | null {
+  const match = nzoId.match(/^(lidarr|tidarr)_nzo_(.+)$/);
+  if (!match || !match[2]) return null;
+
+  return {
+    source: match[1] as TidarrDownloadSource,
+    itemId: match[2],
+  };
 }
 
 export function createErrorResponse(error: string) {
@@ -110,7 +129,7 @@ export function mapItemToQueueSlot(
     priority: "Normal",
     cat: "music",
     percentage: item.status === "download" ? "50" : "0",
-    nzo_id: createNzoId(item.id),
+    nzo_id: createNzoId(item.id, getTidarrDownloadSource(item)),
     unpackopts: "3",
     labels: [],
   };
@@ -119,15 +138,15 @@ export function mapItemToQueueSlot(
 export function mapItemToHistorySlot(item: ProcessingItemType) {
   const isCompleted = item.status === "finished";
   const name = `${item.artist} - ${item.title}`;
+  const source = getTidarrDownloadSource(item);
+  const relativePaths = getTidarrRelativePaths(item);
 
-  // Lidarr-managed downloads: point to .processing folder for import
-  // Tidarr downloads: already moved to music library
-  const downloadPath = `/downloads/${item.id}`;
+  const downloadPath = `/downloads/${relativePaths[0] || item.id}`;
 
   return {
     status: isCompleted ? "Completed" : "Failed",
     name,
-    nzo_id: createNzoId(item.id),
+    nzo_id: createNzoId(item.id, source),
     category: "music",
     size: "0 B",
     bytes: "0",
@@ -142,7 +161,28 @@ export function mapItemToHistorySlot(item: ProcessingItemType) {
     path: downloadPath,
     storage: downloadPath,
     status_string: isCompleted ? "Completed" : "Failed",
+    tidarr_source: source,
+    tidarr_relative_paths: relativePaths,
   };
+}
+
+export function getTidarrRelativePaths(item: ProcessingItemType): string[] {
+  if (getTidarrDownloadSource(item) === "lidarr") {
+    return [item.id];
+  }
+
+  const paths = item.outputPaths || [];
+  const normalizedPaths = paths
+    .map((outputPath) => outputPath.replaceAll("\\", "/").replace(/^\.\//, ""))
+    .filter((outputPath) => {
+      if (!outputPath || outputPath === "." || outputPath.startsWith("/")) {
+        return false;
+      }
+
+      return !outputPath.split("/").includes("..");
+    });
+
+  return [...new Set(normalizedPaths)];
 }
 
 /**
