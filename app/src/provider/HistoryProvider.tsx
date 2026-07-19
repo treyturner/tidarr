@@ -7,6 +7,7 @@ type HistoryContextType = {
   history: string[];
   actions: {
     addToHistory: (id: string) => void;
+    setHistory: (history: string[]) => void;
     emptyHistory: () => void;
   };
 };
@@ -48,6 +49,7 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
     history,
     actions: {
       addToHistory,
+      setHistory,
       emptyHistory,
     },
   };

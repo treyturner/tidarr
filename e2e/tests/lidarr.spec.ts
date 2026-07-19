@@ -218,7 +218,7 @@ test("Lidarr SABnzbd: Should add album to queue via addfile (NZB upload)", async
   expect(json).toHaveProperty("nzo_ids");
   expect(Array.isArray(json.nzo_ids)).toBe(true);
   expect(json.nzo_ids.length).toBeGreaterThan(0);
-  expect(json.nzo_ids[0]).toContain("tidarr_nzo_");
+  expect(json.nzo_ids[0]).toContain("lidarr_nzo_");
 });
 
 test("Lidarr SABnzbd: Should show album in queue after adding (API + UI)", async ({

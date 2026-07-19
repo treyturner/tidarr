@@ -34,6 +34,7 @@ router.get(
       req.app.locals.processingStack.actions.getQueueStatus();
     const payload = JSON.stringify({
       items: sanitizeProcessingData(req.app.locals.processingStack.data),
+      history: req.app.locals.history,
       isPaused,
       batchCount,
       batchResumeAt,

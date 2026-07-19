@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 
 import { getAppInstance } from "../helpers/app-instance";
+import { removeItemFromHistory } from "../services/history";
 import { ProcessingItemType } from "../types";
 
 import {
@@ -86,12 +87,12 @@ export async function handleAddUrlRequest(req: Request, res: Response) {
 
       await addAlbumToQueue(albumId, quality);
 
-      return res.json(createSuccessResponse([createNzoId(albumId)]));
+      return res.json(createSuccessResponse([createNzoId(albumId, "lidarr")]));
     }
 
     // Fallback
     console.log(`[SABnzbd] Unknown addurl/addfile request`);
-    return res.json(createSuccessResponse(["tidarr_nzo_unknown"]));
+    return res.json(createSuccessResponse(["lidarr_nzo_unknown"]));
   } catch (error) {
     console.error("[SABnzbd] Error in addurl/addfile:", error);
     return res.json(createErrorResponse(String(error)));
@@ -117,9 +118,15 @@ async function handleDeleteRequest(
       return res.json(createErrorResponse("Missing nzo_id parameter"));
     }
 
-    // Extract item ID from nzo_id format: tidarr_nzo_<id>
     const nzoId = value as string;
-    const itemId = extractItemIdFromNzoId(nzoId);
+    const parsedNzoId = extractItemIdFromNzoId(nzoId);
+
+    if (!parsedNzoId) {
+      console.log(`[SABnzbd] Invalid nzo_id (${source}): ${nzoId}`);
+      return res.json(createErrorResponse("Invalid nzo_id parameter"));
+    }
+
+    const { itemId } = parsedNzoId;
 
     console.log(
       `[SABnzbd] Delete request for nzo_id: ${nzoId} (item ID: ${itemId}) from ${source}`,
@@ -132,8 +139,19 @@ async function handleDeleteRequest(
       return res.json(createErrorResponse("Processing stack not available"));
     }
 
-    // Check if item exists
     const item = processingStack.actions.getItem(itemId);
+
+    if (source === "history") {
+      await removeItemFromHistory(itemId);
+
+      if (item) {
+        await processingStack.actions.removeItem(itemId);
+      }
+
+      console.log(`[SABnzbd] Successfully acknowledged history item ${itemId}`);
+      return res.json(createSuccessResponse([nzoId]));
+    }
+
     if (!item) {
       console.log(`[SABnzbd] Item ${itemId} not found in ${source}`);
       return res.json(createErrorResponse("Item not found"));
@@ -250,12 +268,12 @@ export function handleHistoryRequest(req: Request, res: Response) {
 
     const { data } = processingStack;
 
-    // Map finished/error items to SABnzbd history slots
+    // Map all finished/error items to SABnzbd history slots. The source and
+    // source-relative output paths let bridge clients resolve the correct
+    // mounted download root.
     const slots = data
-      .filter(
-        (item: ProcessingItemType) =>
-          ["finished", "error"].includes(item.status) &&
-          item.source === "lidarr",
+      .filter((item: ProcessingItemType) =>
+        ["finished", "error"].includes(item.status),
       )
       .slice(0, limitNum)
       .map(mapItemToHistorySlot);

@@ -13,6 +13,7 @@ import { ContentType, ProcessingItemType, TidalItemType } from "../types";
 
 import { useApiFetcher } from "./ApiFetcherProvider";
 import { useConfigProvider } from "./ConfigProvider";
+import { useHistoryProvider } from "./HistoryProvider";
 
 type ProcessingContextType = {
   processingList: ProcessingItemType[] | undefined;
@@ -46,6 +47,9 @@ export function ProcessingProvider({ children }: { children: ReactNode }) {
   const {
     actions: { setConfigErrors },
   } = useConfigProvider();
+  const {
+    actions: { setHistory },
+  } = useHistoryProvider();
   const { formatItem } = useProcessingFormat();
 
   const addItem = async (
@@ -102,13 +106,14 @@ export function ProcessingProvider({ children }: { children: ReactNode }) {
       setIsPaused,
       setBatchCount,
       setBatchResumeAt,
+      setHistory,
     );
     eventSourceRef.current = controller;
     window.addEventListener("beforeunload", closeStreamProcessing);
     return () => {
       window.removeEventListener("beforeunload", closeStreamProcessing);
     };
-  }, [closeStreamProcessing, list_sse]);
+  }, [closeStreamProcessing, list_sse, setHistory]);
 
   return (
     <ProcessingContext.Provider

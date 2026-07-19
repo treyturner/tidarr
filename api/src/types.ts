@@ -38,6 +38,7 @@ export type ProcessingItemType = {
   networkError?: boolean;
   skipped?: boolean;
   source?: "lidarr" | "tidarr";
+  outputPaths?: string[];
   progress?: {
     current: number;
     total: number;
