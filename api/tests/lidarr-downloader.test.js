@@ -15,6 +15,9 @@ const {
 } = require("../dist/src/lidarr/utils/nzb.js");
 const { historyDb } = require("../dist/src/services/db-json.js");
 const { addItemToHistory } = require("../dist/src/services/history.js");
+const {
+  normalizeProcessingItemId,
+} = require("../dist/src/helpers/processing-item-id.js");
 const tidalSearchAlbums = require("../dist/src/lidarr/utils/tidal-search-albums.js");
 
 function processingItem(overrides = {}) {
@@ -86,6 +89,15 @@ test("source-specific nzo_ids are opaque and reversible", () => {
     source: "tidarr",
   });
   assert.equal(extractItemIdFromNzoId("unknown_nzo_123"), null);
+});
+
+test("numeric processing IDs are normalized to strings", () => {
+  const item = processingItem({ id: 515863434 });
+
+  normalizeProcessingItemId(item);
+
+  assert.equal(item.id, "515863434");
+  assert.equal(typeof item.id, "string");
 });
 
 test("addfile returns the same Lidarr ID used by queue and history", async (t) => {
@@ -222,6 +234,76 @@ test("history deletion clears persistent history before processing state", async
   assert.deepEqual(app.locals.history, ["11"]);
   assert.equal(app.locals.historySet.has("22"), false);
   assert.deepEqual(res.body, { status: true, nzo_ids: ["tidarr_nzo_22"] });
+});
+
+test("history deletion removes legacy numeric-keyed processing items", async (t) => {
+  const previousEnableHistory = process.env.ENABLE_HISTORY;
+  process.env.ENABLE_HISTORY = "true";
+  t.after(() => {
+    if (previousEnableHistory === undefined) {
+      delete process.env.ENABLE_HISTORY;
+    } else {
+      process.env.ENABLE_HISTORY = previousEnableHistory;
+    }
+  });
+
+  t.mock.method(historyDb, "push", async () => undefined);
+
+  const items = [processingItem({ id: 515863434 })];
+  const app = installApp(items, { history: ["515863434"] });
+  const res = responseRecorder();
+
+  await handleHistoryRequest(
+    {
+      query: {
+        mode: "history",
+        name: "delete",
+        value: "tidarr_nzo_515863434",
+      },
+    },
+    res,
+  );
+
+  assert.deepEqual(items, []);
+  assert.deepEqual(app.locals.history, []);
+  assert.deepEqual(res.body, {
+    status: true,
+    nzo_ids: ["tidarr_nzo_515863434"],
+  });
+});
+
+test("history deletion fails when processing state remains", async (t) => {
+  const previousEnableHistory = process.env.ENABLE_HISTORY;
+  process.env.ENABLE_HISTORY = "true";
+  t.after(() => {
+    if (previousEnableHistory === undefined) {
+      delete process.env.ENABLE_HISTORY;
+    } else {
+      process.env.ENABLE_HISTORY = previousEnableHistory;
+    }
+  });
+
+  t.mock.method(historyDb, "push", async () => undefined);
+
+  const items = [processingItem({ id: "77" })];
+  installApp(items, {
+    history: ["77"],
+    actions: {
+      async removeItem() {},
+    },
+  });
+  const res = responseRecorder();
+
+  await handleHistoryRequest(
+    { query: { mode: "history", name: "delete", value: "tidarr_nzo_77" } },
+    res,
+  );
+
+  assert.equal(items.length, 1);
+  assert.deepEqual(res.body, {
+    status: false,
+    error: "Error: Failed to remove processing item 77",
+  });
 });
 
 test("history acknowledgement waits for an in-flight persistent add", async (t) => {

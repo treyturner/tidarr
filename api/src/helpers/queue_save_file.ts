@@ -1,6 +1,12 @@
 import { queueDb } from "../services/db-json";
 import { ProcessingItemType } from "../types";
 
+import {
+  normalizeProcessingId,
+  normalizeProcessingItemId,
+  ProcessingItemId,
+} from "./processing-item-id";
+
 const QUEUE_PATH = "/";
 
 export function insertBeforeFirstQueued<T extends { status: string }>(
@@ -16,6 +22,7 @@ export function insertBeforeFirstQueued<T extends { status: string }>(
 }
 
 function cleanItemBeforeSave(item: ProcessingItemType): ProcessingItemType {
+  normalizeProcessingItemId(item);
   delete item.process;
   delete item.progress;
   delete item.retryCount;
@@ -37,13 +44,9 @@ export async function loadQueueFromFile(): Promise<ProcessingItemType[]> {
     return queueCache;
   }
 
-  // First load: read from disk
+  let data: unknown;
   try {
-    const data = await queueDb.getData(QUEUE_PATH);
-    queueCache = Array.isArray(data) ? data : [];
-    // Build Map for O(1) lookups
-    queueCacheMap = new Map(queueCache.map((item) => [item.id, item]));
-    return queueCache;
+    data = await queueDb.getData(QUEUE_PATH);
   } catch {
     // Database doesn't exist yet or path not found, initialize with empty array
     await queueDb.push(QUEUE_PATH, []);
@@ -51,12 +54,33 @@ export async function loadQueueFromFile(): Promise<ProcessingItemType[]> {
     queueCacheMap = new Map();
     return queueCache;
   }
+
+  const records: ProcessingItemType[] = Array.isArray(data) ? data : [];
+  let migratedIds = 0;
+
+  queueCache = records.map((item) => {
+    const originalId: unknown = item.id;
+    normalizeProcessingItemId(item);
+    if (originalId !== item.id) migratedIds += 1;
+    return item;
+  });
+  queueCacheMap = new Map(queueCache.map((item) => [item.id, item]));
+
+  if (migratedIds > 0) {
+    await queueDb.push(QUEUE_PATH, queueCache);
+    console.log(
+      `✅ [QUEUE] Normalized ${migratedIds} persisted processing item ID(s).`,
+    );
+  }
+
+  return queueCache;
 }
 
 export const addItemToFile = async (
   item: ProcessingItemType,
   insertAtFront?: boolean,
 ) => {
+  normalizeProcessingItemId(item);
   const saveList = await loadQueueFromFile();
 
   // Check if item with this ID already exists
@@ -83,6 +107,7 @@ export const addItemsToFile = async (
   items: ProcessingItemType[],
   insertAtFront?: boolean,
 ) => {
+  items.forEach(normalizeProcessingItemId);
   const saveList = await loadQueueFromFile();
 
   const newItems = items
@@ -111,28 +136,31 @@ export const clearQueueFile = async () => {
   await queueDb.push(QUEUE_PATH, []);
 };
 
-export const removeItemsFromFile = async (ids: string[]) => {
+export const removeItemsFromFile = async (ids: ProcessingItemId[]) => {
   const saveList = await loadQueueFromFile();
-  const idSet = new Set(ids);
+  const normalizedIds = ids.map(normalizeProcessingId);
+  const idSet = new Set(normalizedIds);
   const filteredList = saveList.filter((item) => !idSet.has(item.id));
   queueCache = filteredList;
-  for (const id of ids) queueCacheMap?.delete(id);
+  for (const id of normalizedIds) queueCacheMap?.delete(id);
   await queueDb.push(QUEUE_PATH, filteredList);
 };
 
-export const removeItemFromFile = async (id: string) => {
+export const removeItemFromFile = async (id: ProcessingItemId) => {
+  const normalizedId = normalizeProcessingId(id);
   const saveList = await loadQueueFromFile();
-  const filteredList = saveList.filter((item) => item.id !== id);
+  const filteredList = saveList.filter((item) => item.id !== normalizedId);
 
   // Update cache
   queueCache = filteredList;
-  queueCacheMap?.delete(id);
+  queueCacheMap?.delete(normalizedId);
 
   // Write to disk (auto-saves with saveOnPush=true)
   await queueDb.push(QUEUE_PATH, filteredList);
 };
 
 export const updateItemInQueueFile = async (item: ProcessingItemType) => {
+  normalizeProcessingItemId(item);
   const saveList = await loadQueueFromFile();
 
   // O(1) lookup using Map instead of O(n) findIndex

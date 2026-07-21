@@ -27,7 +27,7 @@ export function useProcessingFormat() {
       if (!id) return null;
 
       return {
-        id,
+        id: String(id),
         artist: extractArtist(item, type),
         title: extractTitle(item, type),
         type,
