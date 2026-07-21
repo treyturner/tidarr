@@ -1,23 +1,35 @@
 name: Yarn-Audit
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: ["main"]
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-    - name: Yarn Audit
-      uses: pragatheeswarans/yarn-audit-action@f3ab4c055f4b8f1db1b1ae0e32bab690c9050603  # v1.0.0
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        label: 'audit issues'
-        paths: |
-          .
-          api
-          app
-          e2e
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.x
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Audit dependencies
+        shell: bash
+        run: |
+          set +e
+          yarn audit --level high
+          audit_status=$?
+          set -e
+
+          if (( audit_status > 7 )); then
+            exit "$audit_status"
+          fi
