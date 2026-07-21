@@ -139,13 +139,26 @@ async function handleDeleteRequest(
       return res.json(createErrorResponse("Processing stack not available"));
     }
 
-    const item = processingStack.actions.getItem(itemId);
+    const item =
+      processingStack.actions.getItem(itemId) ??
+      processingStack.data.find(
+        (processingItem: ProcessingItemType) =>
+          String(processingItem.id) === itemId,
+      );
 
     if (source === "history") {
       await removeItemFromHistory(itemId);
 
       if (item) {
-        await processingStack.actions.removeItem(itemId);
+        await processingStack.actions.removeItem(item.id);
+      }
+
+      const itemStillExists = processingStack.data.some(
+        (processingItem: ProcessingItemType) =>
+          String(processingItem.id) === itemId,
+      );
+      if (itemStillExists) {
+        throw new Error(`Failed to remove processing item ${itemId}`);
       }
 
       console.log(`[SABnzbd] Successfully acknowledged history item ${itemId}`);
@@ -158,7 +171,7 @@ async function handleDeleteRequest(
     }
 
     // Remove the item from the processing stack
-    await processingStack.actions.removeItem(itemId);
+    await processingStack.actions.removeItem(item.id);
 
     console.log(`[SABnzbd] Successfully removed item ${itemId} from ${source}`);
 

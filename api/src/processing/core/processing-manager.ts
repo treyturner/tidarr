@@ -2,6 +2,11 @@ import { Express, Response } from "express";
 
 import { getAppInstance } from "../../helpers/app-instance";
 import {
+  normalizeProcessingId,
+  normalizeProcessingItemId,
+  ProcessingItemId,
+} from "../../helpers/processing-item-id";
+import {
   addItemsToFile,
   addItemToFile,
   clearQueueFile,
@@ -153,6 +158,8 @@ export const ProcessingStack = () => {
   }
 
   async function addItem(item: ProcessingItemType, insertAtFront?: boolean) {
+    normalizeProcessingItemId(item);
+
     if (dataMap.has(item.id)) {
       await removeItem(item.id);
     }
@@ -175,6 +182,7 @@ export const ProcessingStack = () => {
     items: ProcessingItemType[],
     insertAtFront?: boolean,
   ) {
+    items.forEach(normalizeProcessingItemId);
     const newItems = items.filter((item) => !dataMap.has(item.id));
     if (newItems.length === 0) return;
 
@@ -193,11 +201,14 @@ export const ProcessingStack = () => {
     notifySSE();
   }
 
-  async function removeItem(id: string) {
-    const item = dataMap.get(id);
+  async function removeItem(id: ProcessingItemId) {
+    const normalizedId = normalizeProcessingId(id);
+    const item = dataMap.get(normalizedId);
 
     if (!item) {
-      console.warn(`removeItem: Item ${id} not found in processing list`);
+      console.warn(
+        `removeItem: Item ${normalizedId} not found in processing list`,
+      );
       return;
     }
 
@@ -205,19 +216,19 @@ export const ProcessingStack = () => {
       (listItem: ProcessingItemType) => listItem?.id === item?.id,
     );
 
-    await removeItemFromFile(id);
-    killProcess(item?.process, id);
+    await removeItemFromFile(normalizedId);
+    killProcess(item?.process, normalizedId);
 
     const playlistId = (item as ProcessingItemWithPlaylist).playlistId;
     if (playlistId) {
-      deletePlaylist(playlistId, id);
+      deletePlaylist(playlistId, normalizedId);
     }
 
     delete data[foundIndex];
     data.splice(foundIndex, 1);
-    dataMap.delete(id);
+    dataMap.delete(normalizedId);
 
-    outputs.delete(String(id));
+    outputs.delete(normalizedId);
     cleanFolder(item.id);
 
     queueManager.processQueue();
@@ -273,19 +284,20 @@ export const ProcessingStack = () => {
     }
   }
 
-  function getItem(id: string): ProcessingItemType {
+  function getItem(id: ProcessingItemId): ProcessingItemType {
     // O(1) lookup using Map instead of O(n) findIndex
-    return dataMap.get(id) as ProcessingItemType;
+    return dataMap.get(normalizeProcessingId(id)) as ProcessingItemType;
   }
 
-  async function singleDownload(id: string) {
-    const item = dataMap.get(id);
+  async function singleDownload(id: ProcessingItemId) {
+    const normalizedId = normalizeProcessingId(id);
+    const item = dataMap.get(normalizedId);
 
     if (
       !item ||
       !["queue_download", "error", "finished"].includes(item.status)
     ) {
-      throw new Error(`Item ${id} cannot be individually downloaded`);
+      throw new Error(`Item ${normalizedId} cannot be individually downloaded`);
     }
 
     item.status = "queue_download";
