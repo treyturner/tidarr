@@ -246,6 +246,46 @@ test("generated Newznab download URLs use Tiddl quality values", () => {
   assert.match(highItem, /AAC-320/);
 });
 
+test("generated Newznab release years use the release date prefix", () => {
+  const originalTimezone = process.env.TZ;
+  process.env.TZ = "America/Chicago";
+
+  try {
+    const req = {
+      protocol: "http",
+      get: () => "localhost:8484",
+      query: {},
+      headers: {},
+    };
+    const item = generateNewznabItem(
+      {
+        id: "456",
+        title: "New Year Album",
+        artist: { name: "Example Artist" },
+        releaseDate: "2024-01-01",
+        numberOfTracks: 1,
+        audioQuality: "LOSSLESS",
+        type: "album",
+      },
+      req,
+      "lossless",
+    );
+
+    assert.match(
+      item,
+      /<title>Example Artist - New Year Album \(2024\) FLAC \[WEB\]-Tidarr \(1 tracks\)<\/title>/,
+    );
+    assert.match(item, /<newznab:attr name="year" value="2024"\/>/);
+    assert.doesNotMatch(item, /New Year Album \(2023\)/);
+  } finally {
+    if (originalTimezone === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTimezone;
+    }
+  }
+});
+
 test("generated Newznab items omit explicit tags by default", () => {
   const req = {
     protocol: "http",
@@ -266,6 +306,10 @@ test("generated Newznab items omit explicit tags by default", () => {
 
   const item = generateNewznabItem(album, req, "lossless");
 
+  assert.match(
+    item,
+    /<title>Example Artist - Example Album \(2024\) FLAC \[WEB\]-Tidarr \(1 tracks\)<\/title>/,
+  );
   assert.doesNotMatch(item, /\[EXPLICIT\]/);
 });
 
