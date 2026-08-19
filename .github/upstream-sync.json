@@ -1,0 +1,110 @@
+{
+  "remote": "upstream",
+  "repository": "cstaelen/tidarr",
+  "branch": "main",
+  "previous_reviewed_commit": "dcfefc489688419ad894fbc6f2193a1d70ba1cab",
+  "last_reviewed_commit": "e96f41eee26e573b3ad4f88f8d29666a8d19d781",
+  "reviewed_at": "2026-08-19",
+  "next_range": "e96f41eee26e573b3ad4f88f8d29666a8d19d781..upstream/main",
+  "notes": [
+    "Runtime changes were adapted instead of cherry-picked because this fork has divergent Lidarr/SABnzbd history behavior, queue tests, and dependency policy.",
+    "Dependency-only upstream commits were reviewed and skipped for this sync; this fork keeps its own Node 22 CI and dependency update cadence."
+  ],
+  "commits": [
+    {
+      "commit": "5193db0bdac538383019c62085e6d665cbb0175e",
+      "subject": "doc(api): update api doc (#849)",
+      "status": "already-equivalent"
+    },
+    {
+      "commit": "b0ebe95128674abd264e6c125871a09b557891fa",
+      "subject": "feat(api): process favorites album per album (#850)",
+      "status": "already-equivalent"
+    },
+    {
+      "commit": "a9261f932fed9205ee88fde7a597fc30ae63ebad",
+      "subject": "chore(deps): bump protobufjs from 7.6.4 to 7.6.5",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "e1f79965e2a83d48c2b1f1f225fb9f497946b58f",
+      "subject": "chore(deps): bump monaco-editor in /app in the root-dependencies group",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "58a0f1e1a0c7839a5a1de346435a9b936b740079",
+      "subject": "chore(deps): bump body-parser from 2.2.1 to 2.3.0",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "2922e10e82970631a9d0bea82109de99eeae02c5",
+      "subject": "chore(deps): bump the root-dependencies group across 1 directory with 10 updates",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "d72f2171d1986e332873fd2bbba9a4be8b4e067b",
+      "subject": "fix(api): run custom script after tagging (#853)",
+      "status": "adapted"
+    },
+    {
+      "commit": "a2ca4580191f07a7aa41ecd50f4a19eb3a5db61e",
+      "subject": "feat(api): lidarr atmos filter handler (#859)",
+      "status": "adapted"
+    },
+    {
+      "commit": "d1b2bfb23766ff54bcce69f717c93d359e568b78",
+      "subject": "chore(deps-dev): bump the root-dependencies group with 3 updates",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "00929d674120422c1c4d7f2a6745374fc05cfc9d",
+      "subject": "fix(lidarr): download batch count (#864)",
+      "status": "adapted"
+    },
+    {
+      "commit": "b93957e9bdfb3d99c91f02b4706adcc1e41431f4",
+      "subject": "chore(deps): bump undici from 8.7.0 to 8.10.0",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "1aaab5eaf7a93a695a19071b16aca996e82644b3",
+      "subject": "chore(deps): bump postcss from 8.5.19 to 8.5.25",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "367fde29a826d445553a037e8bd4c05e573294f2",
+      "subject": "fix(api): atmos error message handler (#871)",
+      "status": "adapted"
+    },
+    {
+      "commit": "d21caee7afd477846940ced925e8d6f8c37b6842",
+      "subject": "feat(front,api): add retry failed items (#870)",
+      "status": "adapted"
+    },
+    {
+      "commit": "f166109922be3fc945a511c880576d4e6bcfe186",
+      "subject": "feat(api): handle tidal connection errors, apply retries (#874)",
+      "status": "adapted"
+    },
+    {
+      "commit": "5e5ed3bf713a97477c223286bc5fa5c757ee1b59",
+      "subject": "chore(deps): bump the root-dependencies group with 13 updates",
+      "status": "skipped-dependency-only"
+    },
+    {
+      "commit": "5e35d89da67480e9061a1027d6313bc8c9009ede",
+      "subject": "doc(api): update nginx doc (#875)",
+      "status": "skipped-doc-only"
+    },
+    {
+      "commit": "3c9418ad3c029ad6c9a97c844e90ccb76ef3c677",
+      "subject": "Fix/lidarr sabnzbd history zero size (#879)",
+      "status": "adapted"
+    },
+    {
+      "commit": "e96f41eee26e573b3ad4f88f8d29666a8d19d781",
+      "subject": "chore(deps): bump the root-dependencies group with 9 updates",
+      "status": "skipped-dependency-only"
+    }
+  ]
+}
