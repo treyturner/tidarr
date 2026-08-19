@@ -57,6 +57,7 @@ test("bulk queue updates persist only matching items", async (t) => {
       url: "album/1",
       loading: false,
       error: true,
+      completedAt: 1787050000,
       source: "tidarr",
     },
     {
@@ -107,6 +108,7 @@ test("bulk queue updates persist only matching items", async (t) => {
   assert.equal(records.length, 2);
   assert.equal(records[0].status, "queue_download");
   assert.equal(records[0].error, false);
+  assert.equal(records[0].completedAt, undefined);
   assert.equal(records[0].retryCount, undefined);
   assert.equal(records[0].networkError, undefined);
   assert.equal(records[1].status, "finished");

@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
+import fs from "fs/promises";
+import path from "path";
 
+import { NZB_DOWNLOAD_PATH } from "../../../constants";
 import { ProcessingItemType } from "../../types";
 
 export type TidarrDownloadSource = "lidarr" | "tidarr";
@@ -132,24 +135,82 @@ export function mapItemToQueueSlot(
     nzo_id: createNzoId(item.id, getTidarrDownloadSource(item)),
     unpackopts: "3",
     labels: [],
+    path: `/downloads/${item.id}`,
+    storage: `/downloads/${item.id}`,
   };
 }
 
-export function mapItemToHistorySlot(item: ProcessingItemType) {
+/**
+ * Recursively sums file sizes under a directory.
+ * Returns 0 if the directory doesn't exist or can't be read.
+ */
+export async function getFolderSizeBytes(folderPath: string): Promise<number> {
+  let total = 0;
+
+  let entries;
+  try {
+    entries = await fs.readdir(folderPath, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+
+  for (const entry of entries) {
+    const entryPath = path.join(folderPath, entry.name);
+    if (entry.isDirectory()) {
+      total += await getFolderSizeBytes(entryPath);
+    } else if (entry.isFile()) {
+      try {
+        const stats = await fs.stat(entryPath);
+        total += stats.size;
+      } catch {
+        // File may have been removed between readdir and stat.
+      }
+    }
+  }
+
+  return total;
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const exponent = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  const value = bytes / Math.pow(1024, exponent);
+
+  return `${value.toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+}
+
+async function getCompletedItemBytes(
+  item: ProcessingItemType,
+  source: TidarrDownloadSource,
+): Promise<number> {
+  if (item.status !== "finished" || source !== "lidarr") {
+    return 0;
+  }
+
+  return getFolderSizeBytes(path.join(NZB_DOWNLOAD_PATH, item.id));
+}
+
+export async function mapItemToHistorySlot(item: ProcessingItemType) {
   const isCompleted = item.status === "finished";
   const name = `${item.artist} - ${item.title}`;
   const source = getTidarrDownloadSource(item);
   const relativePaths = getTidarrRelativePaths(item);
 
   const downloadPath = `/downloads/${relativePaths[0] || item.id}`;
+  const bytes = await getCompletedItemBytes(item, source);
 
   return {
     status: isCompleted ? "Completed" : "Failed",
     name,
     nzo_id: createNzoId(item.id, source),
     category: "music",
-    size: "0 B",
-    bytes: "0",
+    size: formatBytes(bytes),
+    bytes: String(bytes),
     fail_message: isCompleted ? "" : "Download failed",
     download_time: 0,
     downloaded: 0,
@@ -161,6 +222,7 @@ export function mapItemToHistorySlot(item: ProcessingItemType) {
     path: downloadPath,
     storage: downloadPath,
     status_string: isCompleted ? "Completed" : "Failed",
+    completed: isCompleted ? (item.completedAt ?? 0) : 0,
     tidarr_source: source,
     tidarr_relative_paths: relativePaths,
   };

@@ -51,6 +51,7 @@ export class QueueManager {
    */
   async prepareDownload(item: ProcessingItemType): Promise<void> {
     item["status"] = "download";
+    delete item.completedAt;
     this.updateItemCallback(item);
 
     // Initialize empty output history

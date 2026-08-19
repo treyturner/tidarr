@@ -279,6 +279,7 @@ export const ProcessingStack = () => {
       item.retryCount = 0;
       item.networkError = false;
       item.loading = false;
+      delete item.completedAt;
       delete item.process;
       delete item.progress;
     }

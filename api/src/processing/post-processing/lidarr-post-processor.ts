@@ -33,6 +33,7 @@ export async function postProcessLidarr(
     );
   }
 
+  item.completedAt = Math.floor(Date.now() / 1000);
   item.status = "finished";
   onComplete();
 }

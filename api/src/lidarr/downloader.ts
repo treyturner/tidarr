@@ -256,7 +256,7 @@ export function handleQueueRequest(req: Request, res: Response) {
  * Returns download history
  * Maps Tidarr finished/error items to SABnzbd history format
  */
-export function handleHistoryRequest(req: Request, res: Response) {
+export async function handleHistoryRequest(req: Request, res: Response) {
   const { name } = req.query;
 
   // Handle history delete operations
@@ -267,8 +267,10 @@ export function handleHistoryRequest(req: Request, res: Response) {
   try {
     const app = getAppInstance();
     const processingStack = app.locals.processingStack;
-    const { limit = "60" } = req.query;
-    const limitNum = parseInt(limit as string, 10) || 60;
+    const { start = "0", limit = "60" } = req.query;
+    const startNum = Math.max(0, parseInt(String(start), 10) || 0);
+    const parsedLimit = parseInt(String(limit), 10);
+    const limitNum = Number.isFinite(parsedLimit) ? parsedLimit : 60;
 
     if (!processingStack) {
       return res.json({
@@ -284,16 +286,22 @@ export function handleHistoryRequest(req: Request, res: Response) {
     // Map all finished/error items to SABnzbd history slots. The source and
     // source-relative output paths let bridge clients resolve the correct
     // mounted download root.
-    const slots = data
+    const allItems = data
       .filter((item: ProcessingItemType) =>
         ["finished", "error"].includes(item.status),
       )
-      .slice(0, limitNum)
-      .map(mapItemToHistorySlot);
+      .reverse();
+
+    const page =
+      limitNum > 0
+        ? allItems.slice(startNum, startNum + limitNum)
+        : allItems.slice(startNum);
+
+    const slots = await Promise.all(page.map(mapItemToHistorySlot));
 
     return res.json({
       history: {
-        noofslots: slots.length,
+        noofslots: allItems.length,
         month_size: "0 B",
         week_size: "0 B",
         day_size: "0 B",
