@@ -202,6 +202,16 @@ function getQualityInfo(quality: string): QualityInfoType {
     : QUALITY_MAP.lossless;
 }
 
+function getReleaseYear(releaseDate?: string): string {
+  const yearMatch = releaseDate?.trim().match(/^(\d{4})/);
+  if (yearMatch) return yearMatch[1];
+
+  if (!releaseDate) return "";
+
+  const parsedYear = new Date(releaseDate).getFullYear();
+  return Number.isNaN(parsedYear) ? "" : String(parsedYear);
+}
+
 function isTiddlQuality(value: unknown): value is QualityType {
   return (
     typeof value === "string" &&
@@ -382,18 +392,16 @@ export function generateNewznabItem(
   const estimatedSize =
     (album.numberOfTracks || 10) * qualityInfo.sizePerTrackMB * 1024 * 1024;
 
-  const year = album.releaseDate
-    ? new Date(album.releaseDate).getFullYear()
-    : "";
-
+  const year = getReleaseYear(album.releaseDate);
   const formattedArtist = formatForMusicBrainz(albumArtist);
   const formattedTitle = formatForMusicBrainz(album.title);
+  const releaseTitle = `${formattedArtist} - ${formattedTitle}${year ? ` (${year})` : ""}`;
   const explicitTag =
-    options.includeExplicitTags && album.explicit ? "[EXPLICIT]" : "";
+    options.includeExplicitTags && album.explicit ? " [EXPLICIT]" : "";
   const tracksInfo = album.numberOfTracks
     ? ` (${album.numberOfTracks} tracks)`
     : "";
-  const titleWithQuality = `${formattedArtist} - ${formattedTitle}${year ? ` (${year})` : ""} ${explicitTag} ${qualityInfo.qualityName} [WEB]-Tidarr${tracksInfo}`;
+  const titleWithQuality = `${releaseTitle}${explicitTag} ${qualityInfo.qualityName} [WEB]-Tidarr${tracksInfo}`;
 
   return `    <item>
       <title>${escapeXml(titleWithQuality)}</title>
@@ -402,7 +410,7 @@ export function generateNewznabItem(
       <comments>${tidarrUrl}#comments</comments>
       <pubDate>${pubDate}</pubDate>
       <category>${qualityInfo.category}</category>
-      <description>${escapeXml(`${formattedArtist} - ${formattedTitle}${year ? ` (${year})` : ""} ${explicitTag} [${qualityInfo.qualityName}] - ${qualityInfo.format} - ${album.numberOfTracks} tracks - type: ${album.type?.toUpperCase()}`)}</description>
+      <description>${escapeXml(`${releaseTitle}${explicitTag} [${qualityInfo.qualityName}] - ${qualityInfo.format} - ${album.numberOfTracks} tracks - type: ${album.type?.toUpperCase()}`)}</description>
       <enclosure url="${downloadUrl}" length="${estimatedSize}" type="application/x-nzb"/>
       <newznab:attr name="artist" value="${escapeXml(albumArtist)}"/>
       <newznab:attr name="album" value="${escapeXml(album.title)}"/>
