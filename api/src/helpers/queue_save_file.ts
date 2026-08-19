@@ -159,6 +159,31 @@ export const removeItemFromFile = async (id: ProcessingItemId) => {
   await queueDb.push(QUEUE_PATH, filteredList);
 };
 
+export const updateItemsInQueueFile = async (items: ProcessingItemType[]) => {
+  items.forEach(normalizeProcessingItemId);
+  const saveList = await loadQueueFromFile();
+
+  const updatesById = new Map(
+    items
+      .filter((item) => queueCacheMap?.has(item.id))
+      .map((item) => [item.id, cleanItemBeforeSave(item)]),
+  );
+
+  if (updatesById.size === 0) return;
+
+  for (let i = 0; i < saveList.length; i++) {
+    const update = updatesById.get(saveList[i].id);
+    if (update) {
+      saveList[i] = { ...update };
+      queueCacheMap?.set(update.id, update);
+    }
+  }
+
+  queueCache = saveList;
+
+  await queueDb.push(QUEUE_PATH, saveList);
+};
+
 export const updateItemInQueueFile = async (item: ProcessingItemType) => {
   normalizeProcessingItemId(item);
   const saveList = await loadQueueFromFile();

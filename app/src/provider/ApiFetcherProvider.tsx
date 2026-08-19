@@ -41,6 +41,7 @@ type ApiFetcherContextType = {
     remove: (body: string) => Promise<unknown>;
     remove_all: () => Promise<unknown>;
     remove_finished: () => Promise<unknown>;
+    retry_failed: () => Promise<unknown>;
     auth: (body: string) => Promise<AuthType | undefined>;
     is_auth_active: () => Promise<CheckAuthType | undefined>;
     get_token_sse: (
@@ -245,6 +246,12 @@ export function APIFetcherProvider({ children }: { children: ReactNode }) {
   async function remove_finished() {
     return await queryExpressJS(`${apiUrl}/remove-finished`, {
       method: "DELETE",
+    });
+  }
+
+  async function retry_failed() {
+    return await queryExpressJS(`${apiUrl}/retry-failed`, {
+      method: "POST",
     });
   }
 
@@ -548,6 +555,7 @@ export function APIFetcherProvider({ children }: { children: ReactNode }) {
       remove,
       remove_finished,
       remove_all,
+      retry_failed,
       auth,
       is_auth_active,
       get_token_sse,
