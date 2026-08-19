@@ -100,7 +100,7 @@ const handleSabnzbdRequest = async (req: Request, res: Response) => {
         return handleQueueRequest(req, res);
 
       case "history":
-        return handleHistoryRequest(req, res);
+        return await handleHistoryRequest(req, res);
 
       default:
         return res.status(400).json({

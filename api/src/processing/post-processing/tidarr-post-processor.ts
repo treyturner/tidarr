@@ -38,6 +38,7 @@ async function shouldPostProcess(
   const hasFile = await hasFileToMove(processingPath);
 
   if (!hasFile) {
+    item.completedAt = Math.floor(Date.now() / 1000);
     item["status"] = "finished";
     item["skipped"] = true;
     logs(item.id, "⚠️ [TIDARR] No file to process.");
@@ -137,6 +138,7 @@ export async function postProcessTidarr(
   // Mark as finished
   logs(item.id, "---------------------");
   logs(item.id, "✅ [TIDARR] Post processing complete.");
+  item.completedAt = Math.floor(Date.now() / 1000);
   item["status"] = "finished";
 
   // Trigger completion callback

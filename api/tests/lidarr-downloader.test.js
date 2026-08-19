@@ -1,4 +1,5 @@
 const assert = require("node:assert/strict");
+const fsPromises = require("fs/promises");
 const test = require("node:test");
 
 const { setAppInstance } = require("../dist/src/helpers/app-instance.js");
@@ -10,6 +11,7 @@ const {
 const {
   createNzoId,
   extractItemIdFromNzoId,
+  formatBytes,
   mapItemToHistorySlot,
   mapItemToQueueSlot,
 } = require("../dist/src/lidarr/utils/nzb.js");
@@ -141,20 +143,25 @@ test("addfile returns the same Lidarr ID used by queue and history", async (t) =
   });
 });
 
-test("queue and history slots keep Lidarr IDs consistent", () => {
-  const item = processingItem({ source: "lidarr", outputPaths: undefined });
+test("queue and history slots keep Lidarr IDs consistent", async () => {
+  const item = processingItem({
+    source: "lidarr",
+    outputPaths: undefined,
+    completedAt: 1787050000,
+  });
 
   assert.equal(mapItemToQueueSlot(item, false).nzo_id, "lidarr_nzo_34277251");
 
-  const historySlot = mapItemToHistorySlot(item);
+  const historySlot = await mapItemToHistorySlot(item);
   assert.equal(historySlot.nzo_id, "lidarr_nzo_34277251");
   assert.equal(historySlot.storage, "/downloads/34277251");
+  assert.equal(historySlot.completed, 1787050000);
   assert.equal(historySlot.tidarr_source, "lidarr");
   assert.deepEqual(historySlot.tidarr_relative_paths, ["34277251"]);
 });
 
-test("native history slots expose every safe relative output path", () => {
-  const slot = mapItemToHistorySlot(
+test("native history slots expose every safe relative output path", async () => {
+  const slot = await mapItemToHistorySlot(
     processingItem({
       outputPaths: [
         "Daft Punk/2013 - Random Access Memories",
@@ -177,7 +184,7 @@ test("native history slots expose every safe relative output path", () => {
   ]);
 });
 
-test("history returns terminal jobs from both Tidarr sources", () => {
+test("history returns terminal jobs from both Tidarr sources", async () => {
   installApp([
     processingItem({ id: "1", source: "lidarr", outputPaths: undefined }),
     processingItem({ id: "2", source: "tidarr" }),
@@ -185,13 +192,88 @@ test("history returns terminal jobs from both Tidarr sources", () => {
   ]);
 
   const res = responseRecorder();
-  handleHistoryRequest({ query: { mode: "history", limit: "50" } }, res);
+  await handleHistoryRequest({ query: { mode: "history", limit: "50" } }, res);
 
   assert.equal(res.body.history.noofslots, 2);
   assert.deepEqual(
     res.body.history.slots.map((slot) => slot.nzo_id),
-    ["lidarr_nzo_1", "tidarr_nzo_2"],
+    ["tidarr_nzo_2", "lidarr_nzo_1"],
   );
+});
+
+test("history pagination reports total terminal jobs", async () => {
+  installApp([
+    processingItem({ id: "1", source: "lidarr", outputPaths: undefined }),
+    processingItem({ id: "2", source: "tidarr" }),
+    processingItem({ id: "3", source: "tidarr" }),
+    processingItem({ id: "4", source: "tidarr", status: "download" }),
+  ]);
+
+  const res = responseRecorder();
+  await handleHistoryRequest(
+    { query: { mode: "history", start: "1", limit: "1" } },
+    res,
+  );
+
+  assert.equal(res.body.history.noofslots, 3);
+  assert.deepEqual(
+    res.body.history.slots.map((slot) => slot.nzo_id),
+    ["tidarr_nzo_2"],
+  );
+});
+
+test("formatBytes emits SABnzbd-style byte sizes", () => {
+  assert.equal(formatBytes(0), "0 B");
+  assert.equal(formatBytes(512), "512 B");
+  assert.equal(formatBytes(2048), "2.0 KB");
+  assert.equal(formatBytes(1024 * 1024 * 5.5), "5.5 MB");
+});
+
+test("completed Lidarr history slots include folder size", async (t) => {
+  t.mock.method(fsPromises, "readdir", async (folderPath) => {
+    const normalizedPath = String(folderPath);
+    if (normalizedPath.endsWith("/34277251")) {
+      return [
+        {
+          name: "disc",
+          isDirectory: () => true,
+          isFile: () => false,
+        },
+        {
+          name: "cover.jpg",
+          isDirectory: () => false,
+          isFile: () => true,
+        },
+      ];
+    }
+
+    if (normalizedPath.endsWith("/34277251/disc")) {
+      return [
+        {
+          name: "track.flac",
+          isDirectory: () => false,
+          isFile: () => true,
+        },
+      ];
+    }
+
+    return [];
+  });
+  t.mock.method(fsPromises, "stat", async (filePath) => ({
+    size: String(filePath).endsWith("track.flac") ? 1536 : 512,
+  }));
+
+  const slot = await mapItemToHistorySlot(
+    processingItem({
+      source: "lidarr",
+      outputPaths: undefined,
+      completedAt: 1787050123,
+    }),
+  );
+
+  assert.equal(slot.bytes, "2048");
+  assert.equal(slot.size, "2.0 KB");
+  assert.equal(slot.completed, 1787050123);
 });
 
 test("history deletion clears persistent history before processing state", async (t) => {
